@@ -10,6 +10,7 @@ import 'package:cantracer/src/backends/virtual.dart';
 Uint8List b(List<int> x) => Uint8List.fromList(x);
 
 void main() {
+  slcanDetectionTests();
   group('SLCAN protocol', () {
     test('encodes a standard frame', () {
       final f = CanFrame(id: 0x123, data: b([0xDE, 0xAD, 0xBE, 0xEF]));
@@ -314,6 +315,53 @@ void main() {
       expect(frames.length, 5);
       expect(frames.every((f) => f.data.isNotEmpty), isTrue);
       await bus.close();
+    });
+  });
+}
+
+void slcanDetectionTests() {
+  group('SLCAN detection', () {
+    test('names adapters by known USB id', () {
+      expect(slcanNameHint(0xAD50, 0x60C4, null, null), 'CANable');
+      expect(slcanNameHint(0x04D8, 0x000A, 'Generic CDC', null), 'USBtin');
+    });
+
+    test('names adapters by product string', () {
+      expect(slcanNameHint(0x0483, 0x5740, 'CANable2 b158aa7 github.com/x', null), 'CANable2');
+      expect(slcanNameHint(null, null, null, 'USBtin by fischl'), 'USBtin');
+    });
+
+    test('has no opinion about generic bridges', () {
+      expect(slcanNameHint(0x0403, 0x6001, 'FT232R USB UART', 'FTDI'), isNull);
+      expect(slcanNameHint(0x1A86, 0x7523, 'USB Serial', null), isNull);
+    });
+
+    test('skips ports that cannot be CAN adapters', () {
+      expect(slcanWorthProbing('/dev/cu.Bluetooth-Incoming-Port', 0), isFalse);
+      expect(slcanWorthProbing('/dev/cu.debug-console', 0), isFalse);
+      expect(slcanWorthProbing('/dev/rfcomm0', 2), isFalse);
+      expect(slcanWorthProbing('/dev/cu.usbmodem1234', 1), isTrue);
+      expect(slcanWorthProbing('COM3', 1), isTrue);
+      expect(slcanWorthProbing('/dev/ttyUSB0', 1), isTrue);
+    });
+
+    test('recognises SLCAN framing even without a version string', () {
+      expect(slcanLooksLikeReply('V1013\r'), isTrue);
+      expect(slcanLooksLikeReply('16e7497-dirty github.com/canable2.git\r'), isTrue);
+      expect(slcanLooksLikeReply('\x07'), isTrue);
+      expect(slcanLooksLikeReply('\r'), isTrue);
+      expect(slcanLooksLikeReply(''), isFalse);
+      expect(slcanLooksLikeReply('OK\r\n'), isFalse); // AT modem
+      expect(slcanLooksLikeReply('Hello from Arduino\r\n'), isFalse);
+      expect(slcanLooksLikeReply('\$ '), isFalse); // shell on a debug UART
+    });
+
+    test('reads the version out of a noisy reply', () {
+      expect(slcanVersionFrom('V1013\r'), '1013');
+      expect(slcanVersionFrom('\x07\rv0107\r'), '0107');
+      expect(slcanVersionFrom('\r'), isNull);
+      expect(slcanVersionFrom('hello\r'), isNull);
+      expect(slcanVersionFrom('AT+GMR\r\nOK'), isNull);
     });
   });
 }

@@ -43,8 +43,12 @@ devices; the status line tells you what to install.
 - **SocketCAN**: if the link is down CANtracer runs
   `ip link set canX up type can bitrate N`, which needs root. Either run that
   yourself first or start the app with `sudo`.
-- **SLCAN**: fixed table of standard bitrates (10k–1M). The adapter's own
-  UART speed is set to 115200 for genuine RS-232 bridges; USB CDC ignores it.
+- **SLCAN**: only ports that answer the `V` version query with SLCAN framing
+  (bare CR, or a BEL) are listed, plus anything whose USB descriptor names a
+  known adapter (CANable, CANtact, USBtin…). Bluetooth and debug consoles are
+  never probed. Toggle **All ports** to list every serial port if your
+  adapter's firmware doesn't answer `V`. Bitrates come from the fixed
+  S0–S8 table (10k–1M).
 
 ## Building
 

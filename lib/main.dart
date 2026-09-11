@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'src/backends/slcan.dart';
 import 'src/can.dart';
 import 'src/dbc.dart';
 import 'src/registry.dart';
@@ -47,6 +48,7 @@ class _TracerPageState extends State<TracerPage> {
   int bitrate = 500000;
   List<CanDevice> devices = [];
   bool connecting = false;
+  bool scanning = false;
   int? selectedKey;
 
   @override
@@ -63,9 +65,15 @@ class _TracerPageState extends State<TracerPage> {
   }
 
   Future<void> _refreshDevices() async {
+    setState(() => scanning = true);
     final found = await discoverAll();
     if (!mounted) return;
+    final hw = found.where((d) => d.backend != 'virtual').length;
+    model.addStatus(hw == 0
+        ? 'scan: no CAN interfaces found (virtual bus only)'
+        : 'scan: $hw CAN interface${hw == 1 ? '' : 's'} found');
     setState(() {
+      scanning = false;
       devices = found;
       if (device != null && !found.contains(device)) device = null;
       device ??= found.isNotEmpty ? found.first : null;
@@ -128,6 +136,10 @@ class _TracerPageState extends State<TracerPage> {
   void selectKey(int key) => setState(() => selectedKey = key);
   void setDevice(CanDevice? d) => setState(() => device = d);
   void setBitrate(int b) => setState(() => bitrate = b);
+  void setProbeSerial(bool v) {
+    (backendById('slcan') as SlcanBackend).probe = v;
+    _refreshDevices();
+  }
 
   void _toast(String msg) {
     if (!mounted) return;
@@ -212,8 +224,18 @@ class _Toolbar extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Rescan for devices',
-            onPressed: connected ? null : state._refreshDevices,
-            icon: const Icon(Icons.refresh),
+            onPressed: connected || state.scanning ? null : state._refreshDevices,
+            icon: state.scanning
+                ? const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.refresh),
+          ),
+          FilterChip(
+            tooltip: 'List every serial port instead of only detected CAN adapters',
+            label: const Text('All ports'),
+            selected: !(backendById('slcan') as SlcanBackend).probe,
+            onSelected: connected ? null : (v) => state.setProbeSerial(!v),
           ),
           SizedBox(
             width: 150,

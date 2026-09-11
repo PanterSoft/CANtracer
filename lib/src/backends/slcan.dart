@@ -1,6 +1,7 @@
 // SLCAN / Lawicel ASCII protocol over a serial port.
 // Covers CANable, CANtact, USBtin, Lawicel CAN232 and the many clones.
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter_libserialport/flutter_libserialport.dart';
@@ -86,6 +87,117 @@ CanFrame? parseSlcan(String line, {bool timestamps = false}) {
   final parts = buffer.split('\r');
   final remainder = parts.removeLast();
   return (parts.where((p) => p.isNotEmpty).toList(), remainder);
+}
+
+// ---------------------------------------------------------------------------
+// Device detection — pure helpers, unit-tested; the probe itself needs a port.
+// ---------------------------------------------------------------------------
+
+/// USB ids of adapters known to speak SLCAN out of the box.
+const knownSlcanUsbIds = <(int, int), String>{
+  (0xAD50, 0x60C4): 'CANable',
+  (0x04D8, 0x000A): 'USBtin',
+  (0x1D50, 0x606F): 'CANable', // candleLight boards reflashed with slcan
+};
+
+/// Best-effort product name from USB descriptors, or null if it looks generic
+/// (FTDI/CH340 bridges are used by everything, so no guess for those).
+String? slcanNameHint(int? vid, int? pid, String? product, String? manufacturer) {
+  if (vid != null && pid != null) {
+    final known = knownSlcanUsbIds[(vid, pid)];
+    if (known != null) return known;
+  }
+  final text = '${product ?? ''} ${manufacturer ?? ''}'.toLowerCase();
+  for (final needle in ['canable', 'cantact', 'usbtin', 'slcan', 'canusb', 'candapter']) {
+    if (text.contains(needle)) {
+      // CANable reports "CANable2 b158aa7 github.com/..." — keep the model only.
+      final full = (product ?? manufacturer)!.trim();
+      return full.split(RegExp(r'\s+')).first;
+    }
+  }
+  return null;
+}
+
+/// Ports that are certainly not CAN adapters and would only waste probe time
+/// (or, for Bluetooth, hang for seconds trying to pair).
+bool slcanWorthProbing(String path, int transport) {
+  if (transport == SerialPortTransport.bluetooth) return false;
+  final p = path.toLowerCase();
+  return !p.contains('bluetooth') && !p.contains('debug-console') && !p.contains('wlan');
+}
+
+/// Extract the firmware version from a reply to `V\r`, e.g. "V1013" -> "1013".
+/// Accepts lowercase `v` (CANable) and tolerates surrounding ACK/BEL noise.
+String? slcanVersionFrom(String reply) =>
+    RegExp(r'[Vv]([0-9A-Fa-f]{4})').firstMatch(reply)?.group(1);
+
+/// Does this look like something an SLCAN adapter said? The protocol is the
+/// only common one that terminates with a bare CR (modems, Arduino sketches
+/// and shells all use CRLF) or answers with a lone BEL.
+///
+/// CANable2 replies to `V` with a git hash, so a classic version string is
+/// sufficient but not necessary.
+bool slcanLooksLikeReply(String reply) {
+  if (reply.isEmpty) return false;
+  if (slcanVersionFrom(reply) != null) return true;
+  if (reply.contains('\x07')) return true;
+  return reply.contains('\r') && !reply.contains('\n');
+}
+
+/// Open [path], send the version query, and return (detected, version) after
+/// listening for ~300 ms. Blocking; run off the UI isolate.
+(bool, String?) probeSlcanPort(String path) {
+  final port = SerialPort(path);
+  if (!port.openReadWrite()) {
+    port.dispose();
+    return (false, null);
+  }
+  try {
+    port.config = SerialPortConfig()
+      ..baudRate = 115200
+      ..bits = 8
+      ..parity = SerialPortParity.none
+      ..stopBits = 1
+      ..setFlowControl(SerialPortFlowControl.none);
+    port.flush();
+    // 'C' first so an adapter left open by a crashed session still replies.
+    port.write(Uint8List.fromList('C\rV\r'.codeUnits), timeout: 100);
+    final buf = StringBuffer();
+    final deadline = DateTime.now().add(const Duration(milliseconds: 300));
+    while (DateTime.now().isBefore(deadline)) {
+      final chunk = port.read(64, timeout: 100);
+      if (chunk.isNotEmpty) buf.write(String.fromCharCodes(chunk));
+      final v = slcanVersionFrom(buf.toString());
+      if (v != null) return (true, v);
+    }
+    return (slcanLooksLikeReply(buf.toString()), null);
+  } catch (_) {
+    return (false, null);
+  } finally {
+    port.close();
+    port.dispose();
+  }
+}
+
+class _PortInfo {
+  final String path;
+  final int transport;
+  final int? vid, pid;
+  final String? product, manufacturer, description;
+  const _PortInfo(this.path, this.transport, this.vid, this.pid, this.product,
+      this.manufacturer, this.description);
+}
+
+_PortInfo _inspect(String path) {
+  final sp = SerialPort(path);
+  try {
+    return _PortInfo(path, sp.transport, sp.vendorId, sp.productId,
+        sp.productName, sp.manufacturer, sp.description);
+  } catch (_) {
+    return _PortInfo(path, SerialPortTransport.native, null, null, null, null, null);
+  } finally {
+    sp.dispose();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -190,20 +302,42 @@ class SlcanBackend implements CanBackend {
   @override
   String get unavailableReason => '';
 
+  /// When true (default) only ports that answer the SLCAN version query are
+  /// listed. Turn off to see every serial port — the escape hatch for an
+  /// adapter whose firmware doesn't implement `V`.
+  bool probe = true;
+
   @override
   Future<List<CanDevice>> discover() async {
-    return SerialPort.availablePorts.map((p) {
-      String label = p;
-      try {
-        final sp = SerialPort(p);
-        final desc = sp.description;
-        if (desc != null && desc.isNotEmpty) label = '$p — $desc';
-        sp.dispose();
-      } catch (_) {
-        // Port vanished or is held by another process; the raw path still works.
-      }
-      return CanDevice(id, p, label);
-    }).toList();
+    final infos = SerialPort.availablePorts.map(_inspect).toList();
+
+    if (!probe) {
+      return [
+        for (final i in infos)
+          CanDevice(id, i.path,
+              i.description == null || i.description!.isEmpty
+                  ? i.path
+                  : '${i.path} — ${i.description}'),
+      ];
+    }
+
+    final candidates =
+        infos.where((i) => slcanWorthProbing(i.path, i.transport)).toList();
+    final paths = candidates.map((i) => i.path).toList();
+    // Each probe blocks up to 300 ms; keep that off the UI isolate.
+    final probes = await Isolate.run(() => paths.map(probeSlcanPort).toList());
+
+    final out = <CanDevice>[];
+    for (var k = 0; k < candidates.length; k++) {
+      final i = candidates[k];
+      final (detected, version) = probes[k];
+      final hint = slcanNameHint(i.vid, i.pid, i.product, i.manufacturer);
+      if (!detected && hint == null) continue;
+      final name = hint ?? 'SLCAN adapter';
+      final fw = version == null ? '' : ' v$version';
+      out.add(CanDevice(id, i.path, '$name$fw — ${i.path}'));
+    }
+    return out;
   }
 
   @override
