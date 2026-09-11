@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cantracer/main.dart';
+import 'package:cantracer/src/dbc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,10 +27,25 @@ void main() {
             reason: '$label clipped at $size');
       }
 
+      // Connecting swaps labels and icons; none of that may move the toolbar,
+      // or controls get pushed onto another run and out of the window.
+      Map<String, Rect> geometry() => {
+            for (final l in ['Load DBC', 'Export CSV', 'Send'])
+              l: tester.getRect(find.text(l)),
+          };
+      final layout = geometry();
+
       // The trace table degrades to a sideways scroll rather than crushed columns.
       await tester.tap(find.text('Connect'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      expect(geometry(), layout, reason: 'toolbar shifted on connect at $size');
+
+      final state = tester.state(find.byType(TracerPage)) as dynamic;
+      state.model.loadDbc(
+          parseDbc(File('example/demo.dbc').readAsStringSync()), 'demo.dbc');
+      await tester.pumpAndSettle();
+      expect(geometry(), layout, reason: 'toolbar shifted on DBC load at $size');
     });
   }
 }

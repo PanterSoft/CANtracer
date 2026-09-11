@@ -361,8 +361,10 @@ class _Toolbar extends StatelessWidget {
             onPressed: connected || state.scanning ? null : state._refreshDevices,
             icon: state.scanning
                 ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
+                    width: 24, height: 24,
+                    child: Padding(
+                        padding: EdgeInsets.all(3),
+                        child: CircularProgressIndicator(strokeWidth: 2)))
                 : const Icon(Icons.refresh),
           ),
           FilterChip(
@@ -387,14 +389,19 @@ class _Toolbar extends StatelessWidget {
               onChanged: connected ? null : (b) => state.setBitrate(b!),
             ),
           ),
-          FilledButton.icon(
-            onPressed: state.connecting
-                ? null
-                : connected
-                    ? state._disconnect
-                    : state._connect,
-            icon: Icon(connected ? Icons.stop : Icons.play_arrow),
-            label: Text(connected ? 'Disconnect' : 'Connect'),
+          // Fixed width: 'Disconnect' is wider than 'Connect', and letting the
+          // button resize re-wraps the whole toolbar on every connect.
+          SizedBox(
+            width: 150,
+            child: FilledButton.icon(
+              onPressed: state.connecting
+                  ? null
+                  : connected
+                      ? state._disconnect
+                      : state._connect,
+              icon: Icon(connected ? Icons.stop : Icons.play_arrow),
+              label: Text(connected ? 'Disconnect' : 'Connect'),
+            ),
           ),
           const SizedBox(width: 12),
           SegmentedButton<TraceView>(
@@ -427,12 +434,13 @@ class _Toolbar extends StatelessWidget {
             icon: const Icon(Icons.description),
             label: const Text('Load DBC'),
           ),
-          if (state.model.dbc != null)
-            IconButton(
-              tooltip: 'Unload ${state.model.dbcPath}',
-              onPressed: state.model.clearDbc,
-              icon: const Icon(Icons.close),
-            ),
+          IconButton(
+            tooltip: state.model.dbc == null
+                ? 'No DBC loaded'
+                : 'Unload ${state.model.dbcPath}',
+            onPressed: state.model.dbc == null ? null : state.model.clearDbc,
+            icon: const Icon(Icons.close),
+          ),
           OutlinedButton.icon(
             onPressed: state._exportCsv,
             icon: const Icon(Icons.save_alt),
@@ -806,20 +814,31 @@ class _StatusBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
         children: [
-          _stat('Frames', '${model.totalFrames}'),
-          _stat('Rate', '${model.framesPerSecond.round()} /s'),
-          _stat('Bus load', '${model.busLoadPercent.toStringAsFixed(1)} %'),
-          _stat('IDs', '${model.groupedRows.length}'),
-          if (model.dbcPath != null)
-            _stat('DBC', model.dbcPath!),
-          if (model.paused)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: Text('PAUSED',
-                  style: TextStyle(
-                      color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+          // The stats scroll sideways rather than overflow once the window is
+          // too narrow for them, like the trace table.
+          Flexible(
+            flex: 3,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                _stat('Frames', '${model.totalFrames}'),
+                _stat('Rate', '${model.framesPerSecond.round()} /s'),
+                _stat('Bus load', '${model.busLoadPercent.toStringAsFixed(1)} %'),
+                _stat('IDs', '${model.groupedRows.length}'),
+                if (model.dbcPath != null) _stat('DBC', model.dbcPath!),
+                if (model.paused)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: Text('PAUSED',
+                        style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontWeight: FontWeight.bold)),
+                  ),
+              ]),
             ),
-          Expanded(
+          ),
+          Flexible(
+            flex: 2,
             child: Text(last,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,
@@ -832,10 +851,10 @@ class _StatusBar extends StatelessWidget {
 
   Widget _stat(String label, String value) => Padding(
         padding: const EdgeInsets.only(right: 20),
-        child: Row(children: [
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text('$label ',
               style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          Text(value, style: _mono.copyWith(fontSize: 12)),
+          Text(value, softWrap: false, style: _mono.copyWith(fontSize: 12)),
         ]),
       );
 }
