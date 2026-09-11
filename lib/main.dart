@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -75,11 +76,39 @@ class _TracerPageState extends State<TracerPage> {
       if (manual) _snack('CANtracer $appVersion is the latest version');
       return;
     }
+    final newTag = tag;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('CANtracer $tag is available (installed: $appVersion)'),
+      content: Text('CANtracer $newTag is available (installed: $appVersion)'),
       duration: const Duration(seconds: 15),
-      action: SnackBarAction(label: 'Download', onPressed: openReleasePage),
+      action: canSelfInstall
+          ? SnackBarAction(label: 'Install', onPressed: () => _install(newTag))
+          : SnackBarAction(label: 'Download', onPressed: openReleasePage),
     ));
+  }
+
+  /// Downloads and runs the installer; on success the app exits and the
+  /// installer brings it back, so nothing after the await runs.
+  Future<void> _install(String tag) async {
+    final progress = ValueNotifier<double>(0);
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text('Installing CANtracer $tag'),
+        content: ValueListenableBuilder<double>(
+          valueListenable: progress,
+          builder: (_, v, _) => LinearProgressIndicator(value: v == 0 ? null : v),
+        ),
+      ),
+    ));
+    try {
+      await downloadAndInstall(tag, onProgress: (v) => progress.value = v);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _snack('Install failed: $e — opening the download page');
+      openReleasePage();
+    }
   }
 
   void _snack(String msg) =>

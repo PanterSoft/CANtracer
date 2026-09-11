@@ -45,3 +45,71 @@ void openReleasePage() => Process.run(
       Platform.isWindows ? 'cmd' : Platform.isMacOS ? 'open' : 'xdg-open',
       [if (Platform.isWindows) ...['/c', 'start', ''], releasesUrl],
     );
+
+// --- installing ---------------------------------------------------------
+
+/// Release asset this platform can install unattended, or null when it has no
+/// such path (Linux: the .deb needs root, so the browser takes over).
+String? get _assetName => Platform.isWindows
+    ? 'CANtracer-windows-x64-setup.exe'
+    : Platform.isMacOS
+        ? 'CANtracer-macos.dmg'
+        : null;
+
+bool get canSelfInstall => _assetName != null;
+
+String assetUrl(String tag, {String repo = _repo}) =>
+    'https://github.com/$repo/releases/download/$tag/$_assetName';
+
+/// Download the [tag] release and hand it to the OS installer, then quit so the
+/// files being replaced are not in use. Never returns on success. Throws
+/// otherwise, leaving the running install untouched.
+Future<Never> downloadAndInstall(String tag,
+    {void Function(double)? onProgress, String repo = _repo}) async {
+  final file = File('${Directory.systemTemp.path}/$_assetName');
+  await _download(assetUrl(tag, repo: repo), file, onProgress);
+  if (Platform.isWindows) {
+    // Inno Setup: silent, closes and relaunches us around the file swap.
+    await Process.start(file.path,
+        ['/SILENT', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS', '/NORESTART'],
+        mode: ProcessStartMode.detached);
+  } else {
+    // ponytail: a detached shell swaps the bundle once we are gone — the
+    // signed-and-notarised route is Sparkle, which needs signing infra we lack.
+    final app = File(Platform.resolvedExecutable).parent.parent.parent.path;
+    await Process.start(
+        '/bin/sh',
+        [
+          '-c',
+          'sleep 2; m=\$(mktemp -d); '
+              'hdiutil attach -nobrowse -quiet ${_q(file.path)} -mountpoint "\$m" && '
+              'rm -rf ${_q(app)} && cp -R "\$m/CANtracer.app" ${_q(File(app).parent.path)}; '
+              'hdiutil detach -quiet "\$m"; open ${_q(app)}'
+        ],
+        mode: ProcessStartMode.detached);
+  }
+  exit(0);
+}
+
+/// Single-quote a path for /bin/sh.
+String _q(String s) => "'${s.replaceAll("'", r"'\''")}'";
+
+Future<void> _download(String url, File out, void Function(double)? onProgress) async {
+  final client = HttpClient()..userAgent = 'CANtracer/$appVersion';
+  try {
+    final res = await (await client.getUrl(Uri.parse(url))).close();
+    if (res.statusCode != 200) {
+      await res.drain<void>();
+      throw HttpException('download failed (${res.statusCode})', uri: Uri.parse(url));
+    }
+    final total = res.contentLength; // -1 when the server does not say
+    var got = 0;
+    await res.map((chunk) {
+      got += chunk.length;
+      if (total > 0) onProgress?.call(got / total);
+      return chunk;
+    }).pipe(out.openWrite());
+  } finally {
+    client.close();
+  }
+}
