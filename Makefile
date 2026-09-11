@@ -8,22 +8,29 @@ else
   OS ?= windows
 endif
 
-.PHONY: deps build run test analyze clean
+VERSION := $(shell sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+DEFINES := --dart-define=APP_VERSION=$(VERSION)
 
-deps:
+.DEFAULT_GOAL := help
+.PHONY: help deps build run test analyze clean
+
+help: ## Show this help
+	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F ':.*## ' '{printf "  %-8s %s\n", $$1, $$2}'
+
+deps: ## Fetch Dart packages
 	flutter pub get
 
-build: deps
-	flutter build $(OS) --release
+build: deps ## Release build for $(OS)
+	flutter build $(OS) --release $(DEFINES)
 
-run: deps
-	flutter run -d $(OS)
+run: deps ## Run on $(OS)
+	flutter run -d $(OS) $(DEFINES)
 
-test: deps
+test: deps ## Run tests
 	flutter test
 
-analyze: deps
+analyze: deps ## Static analysis
 	flutter analyze
 
-clean:
+clean: ## Remove build output
 	flutter clean

@@ -18,30 +18,34 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: linux
-            artifact: build/linux/x64/release/bundle
-            pack: tar czf CANtracer-linux-x64.tar.gz -C build/linux/x64/release bundle
-          - os: windows-latest
-            target: windows
-            artifact: build/windows/x64/runner/Release
-            pack: 7z a CANtracer-windows-x64.zip ./build/windows/x64/runner/Release/*
-          - os: macos-latest
-            target: macos
-            artifact: build/macos/Build/Products/Release/CANtracer.app
-            pack: ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/CANtracer.app CANtracer-macos.zip
+          - { os: ubuntu-latest,  target: linux }
+          - { os: windows-latest, target: windows }
+          - { os: macos-latest,   target: macos }
     runs-on: ${{ matrix.os }}
+    defaults:
+      run: { shell: bash }
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable }
+      - run: echo "VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_ENV"
       - if: matrix.target == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev
-      - run: flutter build ${{ matrix.target }} --release
-      # Archive on the build host: upload-artifact drops symlinks and exec bits.
-      - run: ${{ matrix.pack }}
+      - run: flutter build ${{ matrix.target }} --release --dart-define=APP_VERSION=$VERSION
+
+      # Installers. Archived on the build host: upload-artifact drops symlinks and exec bits.
+      - if: matrix.target == 'linux'
+        run: |
+          linux/package-deb.sh "$VERSION"
+          tar czf CANtracer-linux-x64.tar.gz -C build/linux/x64/release bundle
+      - if: matrix.target == 'windows'
+        run: iscc "/DAppVersion=$VERSION" windows/installer.iss
+      - if: matrix.target == 'macos'
+        run: |
+          mkdir dmg && cp -R build/macos/Build/Products/Release/CANtracer.app dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname CANtracer -srcfolder dmg -ov -format UDZO CANtracer-macos.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: CANtracer-${{ matrix.target }}

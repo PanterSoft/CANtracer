@@ -9,6 +9,7 @@ import 'src/can.dart';
 import 'src/dbc.dart';
 import 'src/registry.dart';
 import 'src/trace.dart';
+import 'src/update.dart';
 
 void main() => runApp(const CanTracerApp());
 
@@ -55,6 +56,14 @@ class _TracerPageState extends State<TracerPage> {
   void initState() {
     super.initState();
     _refreshDevices();
+    checkForUpdate().then((tag) {
+      if (tag == null || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('CANtracer $tag is available (installed: $appVersion)'),
+        duration: const Duration(seconds: 15),
+        action: SnackBarAction(label: 'Download', onPressed: openReleasePage),
+      ));
+    });
   }
 
   @override
