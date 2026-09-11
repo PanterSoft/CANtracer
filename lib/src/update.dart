@@ -4,14 +4,18 @@ import 'dart:io';
 /// Injected at build time: `--dart-define=APP_VERSION=1.2.3` (see Makefile / CI).
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0.0');
 
-const releasesUrl = 'https://github.com/PanterSoft/CANtracer/releases/latest';
-const _apiUrl = 'https://api.github.com/repos/PanterSoft/CANtracer/releases/latest';
+const _repo = 'PanterSoft/CANtracer';
+const releasesUrl = 'https://github.com/$_repo/releases/latest';
 
 /// Tag of a newer GitHub release, or null when up to date, offline, or rate-limited.
-Future<String?> checkForUpdate() async {
-  final client = HttpClient()..connectionTimeout = const Duration(seconds: 5);
+/// Needs the repo to be public; the API 404s on a private one for anonymous callers.
+Future<String?> checkForUpdate({String repo = _repo}) async {
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 5)
+    ..userAgent = 'CANtracer/$appVersion'; // GitHub 403s an empty User-Agent
   try {
-    final res = await (await client.getUrl(Uri.parse(_apiUrl))).close();
+    final url = 'https://api.github.com/repos/$repo/releases/latest';
+    final res = await (await client.getUrl(Uri.parse(url))).close();
     if (res.statusCode != 200) return null;
     final tag = jsonDecode(await res.transform(utf8.decoder).join())['tag_name'] as String;
     return isNewer(tag, appVersion) ? tag : null;
