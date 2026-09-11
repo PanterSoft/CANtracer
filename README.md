@@ -53,9 +53,9 @@ devices; the status line tells you what to install.
 ## Building
 
 ```sh
-flutter pub get
-flutter test              # 96 tests, no hardware needed
-flutter run -d macos      # or -d windows / -d linux
+make test     # 102 tests, no hardware needed
+make run      # picks macos / linux / windows from the host; override with OS=
+make build    # release bundle into build/<os>/
 ```
 
 Linux additionally needs `ninja-build libgtk-3-dev`. Release builds land in
