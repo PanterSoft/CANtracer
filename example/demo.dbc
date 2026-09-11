@@ -1,0 +1,28 @@
+VERSION "CANtracer demo"
+
+NS_ :
+
+BS_:
+
+BU_: ECM TCM Dashboard
+
+BO_ 291 EngineData: 8 ECM
+ SG_ EngineSpeed : 0|16@1+ (0.25,0) [0|16383.75] "rpm" Dashboard,TCM
+ SG_ CoolantTemp : 16|8@1+ (1,-40) [-40|215] "degC" Dashboard
+ SG_ ThrottlePos : 24|8@1+ (0.4,0) [0|102] "%" Dashboard
+
+BO_ 256 GearStatus: 2 TCM
+ SG_ GearState : 0|4@1+ (1,0) [0|15] "" Dashboard
+
+BO_ 512 SensorMux: 8 Dashboard
+ SG_ Selector M : 0|8@1+ (1,0) [0|255] "" ECM
+ SG_ ManifoldPressure m0 : 8|16@1+ (1,0) [0|65535] "kPa" ECM
+ SG_ BatteryVoltage m1 : 8|16@1+ (2,100) [100|131170] "mV" ECM
+
+BO_ 2566811646 J1939Heartbeat: 8 ECM
+ SG_ Counter : 0|8@1+ (1,0) [0|255] "" Dashboard
+
+VAL_ 256 GearState 0 "Park" 1 "Reverse" 2 "Neutral" 3 "Drive" ;
+
+CM_ BO_ 291 "Primary engine data, 10 ms cycle";
+CM_ SG_ 291 EngineSpeed "Crankshaft speed, 0.25 rpm resolution";
