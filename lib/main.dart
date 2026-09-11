@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,6 +15,10 @@ import 'src/trace.dart';
 import 'src/update.dart';
 
 void main() => runApp(const CanTracerApp());
+
+/// macOS wants app actions in the system menu bar; Flutter ships no native
+/// menu delegate for Windows/Linux, so those keep the toolbar overflow menu.
+final _nativeMenus = defaultTargetPlatform == TargetPlatform.macOS;
 
 const _mono = TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Consolas'], fontSize: 13);
 
@@ -213,9 +218,80 @@ class _TracerPageState extends State<TracerPage> {
         .showSnackBar(SnackBar(content: Text(msg), showCloseIcon: true));
   }
 
+  /// macOS keeps app-level actions in the system menu bar. PlatformMenuBar
+  /// replaces the whole Runner menu, so the standard menus are re-declared
+  /// here from platform-provided items.
+  List<PlatformMenuItem> _menus() => [
+        PlatformMenu(label: 'CANtracer', menus: [
+          const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.about),
+          PlatformMenuItemGroup(members: [
+            PlatformMenuItem(
+              label: 'Check for Updates…',
+              onSelected: () => _checkUpdate(manual: true),
+            ),
+          ]),
+          const PlatformMenuItemGroup(members: [
+            PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.servicesSubmenu),
+          ]),
+          const PlatformMenuItemGroup(members: [
+            PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.hide),
+            PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.hideOtherApplications),
+            PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.showAllApplications),
+          ]),
+          const PlatformMenuItemGroup(members: [
+            PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.quit),
+          ]),
+        ]),
+        PlatformMenu(label: 'File', menus: [
+          PlatformMenuItem(
+            label: 'Open DBC…',
+            shortcut: const SingleActivator(LogicalKeyboardKey.keyO, meta: true),
+            onSelected: _loadDbc,
+          ),
+          PlatformMenuItem(label: 'Close DBC', onSelected: model.clearDbc),
+          PlatformMenuItemGroup(members: [
+            PlatformMenuItem(
+              label: 'Export CSV…',
+              shortcut: const SingleActivator(LogicalKeyboardKey.keyS, meta: true),
+              onSelected: _exportCsv,
+            ),
+          ]),
+        ]),
+        const PlatformMenu(label: 'Edit', menus: [
+          PlatformMenuItem(
+            label: 'Cut',
+            shortcut: SingleActivator(LogicalKeyboardKey.keyX, meta: true),
+            onSelectedIntent: CopySelectionTextIntent.cut(SelectionChangedCause.keyboard),
+          ),
+          PlatformMenuItem(
+            label: 'Copy',
+            shortcut: SingleActivator(LogicalKeyboardKey.keyC, meta: true),
+            onSelectedIntent: CopySelectionTextIntent.copy,
+          ),
+          PlatformMenuItem(
+            label: 'Paste',
+            shortcut: SingleActivator(LogicalKeyboardKey.keyV, meta: true),
+            onSelectedIntent: PasteTextIntent(SelectionChangedCause.keyboard),
+          ),
+          PlatformMenuItem(
+            label: 'Select All',
+            shortcut: SingleActivator(LogicalKeyboardKey.keyA, meta: true),
+            onSelectedIntent: SelectAllTextIntent(SelectionChangedCause.keyboard),
+          ),
+        ]),
+        const PlatformMenu(label: 'Window', menus: [
+          PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.minimizeWindow),
+          PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.zoomWindow),
+          PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.toggleFullScreen),
+        ]),
+        PlatformMenu(label: 'Help', menus: [
+          PlatformMenuItem(label: 'Release Notes', onSelected: openReleasePage),
+        ]),
+      ];
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final page = Scaffold(
       body: Column(
         children: [
           _Toolbar(state: this),
@@ -236,6 +312,7 @@ class _TracerPageState extends State<TracerPage> {
         ],
       ),
     );
+    return _nativeMenus ? PlatformMenuBar(menus: _menus(), child: page) : page;
   }
 }
 
@@ -387,27 +464,28 @@ class _Toolbar extends StatelessWidget {
             selected: state.model.onlyKnown,
             onSelected: state.model.setOnlyKnown,
           ),
-          PopupMenuButton<void Function()>(
-            tooltip: 'More',
-            icon: const Icon(Icons.more_vert),
-            onSelected: (action) => action(),
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                value: () => state._checkUpdate(manual: true),
-                child: const ListTile(
-                    dense: true,
-                    leading: Icon(Icons.system_update),
-                    title: Text('Check for updates')),
-              ),
-              PopupMenuItem(
-                value: openReleasePage,
-                child: const ListTile(
-                    dense: true,
-                    leading: Icon(Icons.info_outline),
-                    title: Text('Releases')),
-              ),
-            ],
-          ),
+          if (!_nativeMenus)
+            PopupMenuButton<void Function()>(
+              tooltip: 'More',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) => action(),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: () => state._checkUpdate(manual: true),
+                  child: const ListTile(
+                      dense: true,
+                      leading: Icon(Icons.system_update),
+                      title: Text('Check for updates')),
+                ),
+                PopupMenuItem(
+                  value: openReleasePage,
+                  child: const ListTile(
+                      dense: true,
+                      leading: Icon(Icons.info_outline),
+                      title: Text('Releases')),
+                ),
+              ],
+            ),
           Text('v$appVersion',
               style: const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
         ],
