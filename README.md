@@ -1,3 +1,5 @@
+<img src="linux/cantracer.png" width="84" align="left" alt="">
+
 # CANtracer
 
 [![CI](https://github.com/PanterSoft/CANtracer/actions/workflows/ci.yml/badge.svg)](https://github.com/PanterSoft/CANtracer/actions/workflows/ci.yml)
