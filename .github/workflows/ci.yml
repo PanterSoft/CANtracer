@@ -16,6 +16,7 @@ jobs:
   build:
     needs: test
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { os: ubuntu-latest,  target: linux }
@@ -44,7 +45,9 @@ jobs:
           linux/package-deb.sh "$VERSION"
           tar czf CANtracer-linux-x64.tar.gz -C build/linux/x64/release bundle
       - if: matrix.target == 'windows'
-        run: iscc "/DAppVersion=$VERSION" windows/installer.iss
+        # pwsh, not bash: git-bash rewrites the leading-slash /D flag into a path.
+        shell: pwsh
+        run: iscc "/DAppVersion=$env:VERSION" windows/installer.iss
       - if: matrix.target == 'macos'
         run: |
           mkdir dmg && cp -R build/macos/Build/Products/Release/CANtracer.app dmg/ && ln -s /Applications dmg/Applications
