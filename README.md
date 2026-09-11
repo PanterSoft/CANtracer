@@ -76,40 +76,15 @@ the status line says what to install.
 ## Build
 
 ```sh
-make test     # 109 tests, no hardware needed
+make test     # no hardware needed
 make run      # picks macos / linux / windows from the host; override with OS=
 make build    # release bundle into build/<os>/
 ```
 
-Linux also needs `ninja-build libgtk-3-dev`. CI builds all three platforms on
-every push; a push to `main` releases: it takes the next patch version (or the
-pubspec one if that has no release yet), commits it, and publishes the three
-installers under that tag.
+Linux also needs `ninja-build libgtk-3-dev`.
 
-## Architecture
-
-```text
-lib/src/can.dart          CanFrame, CanBus, CanBackend — the whole contract
-lib/src/dbc.dart          DBC parser + bit-exact signal extraction/insertion
-lib/src/trace.dart        ring buffer, per-id rows, stats, 20 Hz repaint tick
-lib/src/backends/*.dart   one file per device family
-lib/src/registry.dart     the list of backends; one line adds a family
-lib/main.dart             the UI
-```
-
-Every backend splits into a **pure codec** (bytes/strings ⇄ `CanFrame`, unit
-tested) and a thin **transport** (FFI or serial, untestable without a device);
-the PCAN, SocketCAN and Vector struct layouts are pinned by tests, so transport
-bugs stay confined to a handful of driver calls. Received frames never touch the
-widget tree directly — `TraceModel.add` only does bookkeeping and a 50 ms timer
-repaints, which is what keeps the UI responsive on a saturated 1 Mbit/s bus.
-
-## Not (yet) here
-
-CAN FD, signal-level transmit composer, disk logging beyond CSV, graphing.
-`DbcSignal.rawInto` is already tested, so a signal-based send dialog is a
-UI-only addition. Grep for `ponytail:` to find every deliberate simplification
-and its upgrade path.
+Not here yet: CAN FD, signal-level transmit composer, disk logging beyond CSV,
+graphing.
 
 ## License
 
