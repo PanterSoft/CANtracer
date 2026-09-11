@@ -56,14 +56,17 @@ devices; the status line tells you what to install.
 macOS, via Homebrew:
 
 ```sh
-brew tap pantersoft/cantracer https://github.com/PanterSoft/CANtracer
-brew install --cask --no-quarantine cantracer
+brew tap pantersoft/pantersoft
+brew trust --cask pantersoft/pantersoft/cantracer   # once: third-party casks are untrusted
+brew install --cask cantracer
 ```
 
-The cask lives in this repo, hence the tap URL. `--no-quarantine` is needed
-because the build is ad-hoc signed rather than notarised; without it Gatekeeper
-refuses to open the app (clear it afterwards with
-`xattr -dr com.apple.quarantine /Applications/CANtracer.app`).
+The build is ad-hoc signed rather than notarised, so macOS quarantines it. If it
+refuses to open:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/CANtracer.app
+```
 
 Windows, Linux and the plain macOS dmg: take the installer from the
 [latest release](https://github.com/PanterSoft/CANtracer/releases/latest).
