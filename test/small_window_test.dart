@@ -1,0 +1,33 @@
+import 'package:cantracer/main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// The app is a desktop window the user can shrink; nothing may overflow and
+/// every control must stay hittable. 640x480 is the floor the native runners
+/// enforce as the minimum window size.
+void main() {
+  for (final size in const [Size(640, 480), Size(800, 600), Size(1024, 768), Size(1440, 900)]) {
+    testWidgets('lays out and stays operable at ${size.width}x${size.height}',
+        (tester) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const CanTracerApp());
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      // Controls that must remain reachable without a maximised window.
+      for (final label in ['Connect', 'Load DBC', 'Export CSV']) {
+        final finder = find.text(label);
+        expect(finder, findsOneWidget, reason: '$label missing at $size');
+        final rect = tester.getRect(finder);
+        expect(rect.right, lessThanOrEqualTo(size.width),
+            reason: '$label clipped at $size');
+      }
+
+      // The trace table degrades to a sideways scroll rather than crushed columns.
+      await tester.tap(find.text('Connect'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
+}

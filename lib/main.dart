@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -200,6 +201,9 @@ class _Toolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final connected = state.bus != null;
+    return LayoutBuilder(builder: (context, c) {
+    // Fields keep their preferred width until the window is narrower than they are.
+    double cap(double want) => math.min(want, c.maxWidth - 24);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Wrap(
@@ -211,7 +215,7 @@ class _Toolbar extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(width: 8),
           SizedBox(
-            width: 300,
+            width: cap(300),
             child: DropdownButtonFormField<CanDevice>(
               initialValue: state.device,
               isExpanded: true,
@@ -244,7 +248,7 @@ class _Toolbar extends StatelessWidget {
             onSelected: connected ? null : (v) => state.setProbeSerial(!v),
           ),
           SizedBox(
-            width: 150,
+            width: cap(150),
             child: DropdownButtonFormField<int>(
               initialValue: state.bitrate,
               isExpanded: true,
@@ -320,7 +324,7 @@ class _Toolbar extends StatelessWidget {
             label: const Text('Send'),
           ),
           SizedBox(
-            width: 180,
+            width: cap(180),
             child: TextField(
               decoration: const InputDecoration(
                 labelText: 'ID filter (hex)',
@@ -339,10 +343,25 @@ class _Toolbar extends StatelessWidget {
         ],
       ),
     );
+    });
   }
 }
 
 // ---------------------------------------------------------------------------
+
+/// Narrower than this the columns stop being readable, so the whole table
+/// scrolls sideways instead of crushing every cell into an ellipsis.
+const _minTableWidth = 820.0;
+
+Widget _scrollableTable(Widget table) => LayoutBuilder(
+      builder: (context, c) => c.maxWidth >= _minTableWidth
+          ? table
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                  width: _minTableWidth, height: c.maxHeight, child: table),
+            ),
+    );
 
 const _headerStyle = TextStyle(
     fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF9E9E9E));
@@ -421,7 +440,7 @@ class _GroupedTable extends StatelessWidget {
     }
     final anyExpanded = state.expanded.isNotEmpty;
 
-    return Column(
+    return _scrollableTable(Column(
       children: [
         Container(
           color: const Color(0x22FFFFFF),
@@ -457,7 +476,7 @@ class _GroupedTable extends StatelessWidget {
                 ),
         ),
       ],
-    );
+    ));
   }
 
   Widget _messageRow(BuildContext context, _MsgLine l) {
@@ -548,7 +567,7 @@ class _LiveTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final frames = state.model.liveFrames;
-    return Column(
+    return _scrollableTable(Column(
       children: [
         _header(const [
           ('TIME', 3), ('DIR', 1), ('ID', 2), ('MESSAGE', 4), ('LEN', 1), ('DATA', 6),
@@ -607,7 +626,7 @@ class _LiveTable extends StatelessWidget {
                 ),
         ),
       ],
-    );
+    ));
   }
 }
 

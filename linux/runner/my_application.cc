@@ -53,6 +53,8 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  // Below this the trace layout breaks; matches test/small_window_test.dart.
+  gtk_widget_set_size_request(GTK_WIDGET(window), 640, 480);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
