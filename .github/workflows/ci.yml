@@ -74,3 +74,15 @@ jobs:
           TAG="v$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)"
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" && { echo "$TAG exists, skipping"; exit 0; }
           gh release create "$TAG" CANtracer-* -R "$GITHUB_REPOSITORY" --generate-notes
+
+      # The Homebrew cask lives in this repo (tapped by URL); keep it pinned to
+      # the release it installs. [skip ci] stops the push from re-running CI.
+      - run: |
+          VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          SHA=$(sha256sum CANtracer-macos.dmg | cut -d' ' -f1)
+          sed -i "s|^  version .*|  version \"$VERSION\"|; s|^  sha256 .*|  sha256 \"$SHA\"|" Casks/cantracer.rb
+          git diff --quiet Casks/cantracer.rb && exit 0
+          git -c user.name=github-actions[bot] \
+              -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+              commit -m "Homebrew cask: v$VERSION [skip ci]" Casks/cantracer.rb
+          git push origin HEAD:main
