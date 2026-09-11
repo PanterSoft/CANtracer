@@ -114,6 +114,5 @@ jobs:
           gh release create "$TAG" CANtracer-* -R "$GITHUB_REPOSITORY" \
             --target main --generate-notes
 
-      # The Homebrew cask lives in PanterSoft/homebrew-pantersoft; after a
-      # release bump it with
-      #   brew bump-cask-pr --version=<version> pantersoft/pantersoft/cantracer
+      # The Homebrew cask in PanterSoft/homebrew-pantersoft follows the latest
+      # release on its own (hourly workflow there); nothing to do here.
