@@ -82,7 +82,9 @@ make build    # release bundle into build/<os>/
 ```
 
 Linux also needs `ninja-build libgtk-3-dev`. CI builds all three platforms on
-every push and publishes installers for pushes to `main`.
+every push; a push to `main` releases: it takes the next patch version (or the
+pubspec one if that has no release yet), commits it, and publishes the three
+installers under that tag.
 
 ## Architecture
 

@@ -13,8 +13,42 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-  build:
+  # Every push to main releases. The version is the pubspec one while it has no
+  # release yet (so a manual 1.1.0 is honoured), then the next patch. It is
+  # committed here, before the builds, so the tag, the installers and the
+  # version the app reports are the same number. [skip ci] stops the loop.
+  version:
     needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.pick.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PUB=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)
+          V=$PUB
+          if gh release view "v$PUB" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            V=$(echo "$PUB" | awk -F. '{printf "%d.%d.%d", $1, $2, $3 + 1}')
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "releasing $V (pubspec: $PUB)"
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          V=${{ steps.pick.outputs.version }}
+          sed -i "s|^version: .*|version: $V+${{ github.run_number }}|" pubspec.yaml
+          git diff --quiet pubspec.yaml && exit 0
+          git -c user.name=github-actions[bot] \
+              -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+              commit -m "Version $V [skip ci]" pubspec.yaml
+          git push origin HEAD:main
+
+  build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -25,12 +59,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run: { shell: bash }
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable }
-      - run: |
-          echo "VERSION=$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)" >> "$GITHUB_ENV"
       - if: matrix.target == 'linux'
         run: |
           sudo apt-get update
@@ -59,21 +93,21 @@ jobs:
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { merge-multiple: true }
-      # Tag = pubspec version (build number stripped); skip if that release already exists.
+      # Tags the bumped main, so v<tag> contains the pubspec that says <tag>.
       - env:
           GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.version.outputs.version }}
         run: |
-          TAG="v$(sed -n 's/^version: *\([^+]*\).*/\1/p' pubspec.yaml)"
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" && { echo "$TAG exists, skipping"; exit 0; }
-          gh release create "$TAG" CANtracer-* -R "$GITHUB_REPOSITORY" --generate-notes
+          gh release create "$TAG" CANtracer-* -R "$GITHUB_REPOSITORY" \
+            --target main --generate-notes
 
       # The Homebrew cask lives in PanterSoft/homebrew-pantersoft; after a
       # release bump it with
