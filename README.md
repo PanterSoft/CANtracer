@@ -11,8 +11,9 @@ Windows · macOS · Linux — one Flutter codebase, no native plugin code.
 - **Grouped view** — one row per identifier with count, cycle time and
   per-byte change highlighting (the CANoe "fixed" trace)
 - **Live view** — scrolling frame-by-frame log, newest first
-- **DBC decoding** — load a `.dbc`, messages get names, select one to see
-  every signal scaled with units, value tables and multiplexing resolved
+- **DBC decoding** — load a `.dbc`, messages get names and an expander; open
+  one and its signals appear inline beneath it, scaled with units, value
+  tables and multiplexing resolved — the CANoe trace window layout
 - **Filtering** — hex id list/ranges (`100, 200-2FF`) and "DBC only"
 - **Send** — raw frames, 11/29-bit, RTR
 - **Export** — CSV of the trace buffer

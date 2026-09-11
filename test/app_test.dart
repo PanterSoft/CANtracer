@@ -40,11 +40,21 @@ void main() {
     expect(find.text('EngineData'), findsOneWidget);
     expect(find.text('GearStatus'), findsOneWidget);
 
+    // Signals are collapsed until the message row is expanded.
+    expect(find.textContaining('EngineSpeed'), findsNothing);
     await tester.tap(find.text('EngineData'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('EngineSpeed'), findsOneWidget);
-    expect(find.text('CoolantTemp'), findsOneWidget);
+    expect(find.textContaining('EngineSpeed'), findsOneWidget);
+    expect(find.textContaining('CoolantTemp'), findsOneWidget);
     expect(find.textContaining('rpm'), findsWidgets);
+    // Collapse again.
+    await tester.tap(find.text('EngineData'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('EngineSpeed'), findsNothing);
+    // Expand all via the header button.
+    await tester.tap(find.byTooltip('Expand all'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.textContaining('GearState'), findsOneWidget);
 
     // Live view lists individual frames with a direction column.
     await tester.tap(find.text('Live'));

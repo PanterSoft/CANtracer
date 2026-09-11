@@ -49,7 +49,7 @@ class _TracerPageState extends State<TracerPage> {
   List<CanDevice> devices = [];
   bool connecting = false;
   bool scanning = false;
-  int? selectedKey;
+  final expanded = <int>{};
 
   @override
   void initState() {
@@ -133,7 +133,16 @@ class _TracerPageState extends State<TracerPage> {
 
   // The toolbar and tables live in separate widgets; these are the only
   // pieces of page state they mutate.
-  void selectKey(int key) => setState(() => selectedKey = key);
+  void toggleExpanded(int key) =>
+      setState(() => expanded.contains(key) ? expanded.remove(key) : expanded.add(key));
+  void expandAll(bool expand) => setState(() {
+        expanded.clear();
+        if (expand) {
+          expanded.addAll(model.groupedRows
+              .where((r) => model.messageFor(r.id, r.extended) != null)
+              .map((r) => r.key));
+        }
+      });
   void setDevice(CanDevice? d) => setState(() => device = d);
   void setBitrate(int b) => setState(() => bitrate = b);
   void setProbeSerial(bool v) {
@@ -157,21 +166,9 @@ class _TracerPageState extends State<TracerPage> {
           Expanded(
             child: ListenableBuilder(
               listenable: model,
-              builder: (context, _) => Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: model.view == TraceView.grouped
-                        ? _GroupedTable(state: this)
-                        : _LiveTable(state: this),
-                  ),
-                  const VerticalDivider(width: 1),
-                  SizedBox(
-                    width: 380,
-                    child: _SignalPanel(state: this),
-                  ),
-                ],
-              ),
+              builder: (context, _) => model.view == TraceView.grouped
+                  ? _GroupedTable(state: this)
+                  : _LiveTable(state: this),
             ),
           ),
           const Divider(height: 1),
@@ -380,76 +377,157 @@ class _HexData extends StatelessWidget {
   }
 }
 
+/// A line in the grouped trace: either a message or, when that message is
+/// expanded and decodable, one of its signals — CANoe's trace window layout.
+sealed class _Line {}
+
+class _MsgLine extends _Line {
+  final TraceRow row;
+  final DbcMessage? msg;
+  _MsgLine(this.row, this.msg);
+}
+
+class _SigLine extends _Line {
+  final TraceRow row;
+  final DbcSignal sig;
+  _SigLine(this.row, this.sig);
+}
+
 class _GroupedTable extends StatelessWidget {
   final _TracerPageState state;
   const _GroupedTable({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    final rows = state.model.groupedRows;
+    final model = state.model;
+    final lines = <_Line>[];
+    for (final r in model.groupedRows) {
+      final msg = model.messageFor(r.id, r.extended);
+      lines.add(_MsgLine(r, msg));
+      if (msg != null && state.expanded.contains(r.key)) {
+        for (final sig in msg.signalsFor(r.data)) {
+          lines.add(_SigLine(r, sig));
+        }
+      }
+    }
+    final anyExpanded = state.expanded.isNotEmpty;
+
     return Column(
       children: [
-        _header(const [
-          ('ID', 2), ('MESSAGE', 4), ('LEN', 1), ('DATA', 6),
-          ('COUNT', 2), ('CYCLE', 2),
-        ]),
+        Container(
+          color: const Color(0x22FFFFFF),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: anyExpanded ? 'Collapse all' : 'Expand all',
+                visualDensity: VisualDensity.compact,
+                iconSize: 18,
+                onPressed: model.dbc == null ? null : () => state.expandAll(!anyExpanded),
+                icon: Icon(anyExpanded ? Icons.unfold_less : Icons.unfold_more),
+              ),
+              const Expanded(flex: 2, child: Text('ID', style: _headerStyle)),
+              const Expanded(flex: 4, child: Text('MESSAGE / SIGNAL', style: _headerStyle)),
+              const Expanded(flex: 1, child: Text('LEN', style: _headerStyle)),
+              const Expanded(flex: 6, child: Text('DATA / VALUE', style: _headerStyle)),
+              const Expanded(flex: 2, child: Text('COUNT / RAW', style: _headerStyle)),
+              const Expanded(flex: 2, child: Text('CYCLE', style: _headerStyle)),
+            ],
+          ),
+        ),
         Expanded(
-          child: rows.isEmpty
+          child: lines.isEmpty
               ? const _Empty('No frames yet — connect an interface.')
               : ListView.builder(
-                  itemCount: rows.length,
+                  itemCount: lines.length,
                   itemExtent: 28,
-                  itemBuilder: (context, i) {
-                    final r = rows[i];
-                    final msg = state.model.messageFor(r.id, r.extended);
-                    final selected = state.selectedKey == r.key;
-                    final period = r.periodMs;
-                    return InkWell(
-                      onTap: () => state.selectKey(r.key),
-                      child: Container(
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)
-                            : null,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Row(
-                          children: [
-                            Expanded(
-                                flex: 2,
-                                child: Text(
-                                    '${r.extended ? "x" : ""}${_hexId(r.id, r.extended)}',
-                                    style: _mono)),
-                            Expanded(
-                                flex: 4,
-                                child: Text(msg?.name ?? '—',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: msg == null
-                                            ? Colors.grey
-                                            : Theme.of(context).colorScheme.primary))),
-                            Expanded(
-                                flex: 1,
-                                child: Text('${r.data.length}', style: _mono)),
-                            Expanded(
-                                flex: 6,
-                                child: _HexData(r.data, changedMask: r.changedMask)),
-                            Expanded(
-                                flex: 2, child: Text('${r.count}', style: _mono)),
-                            Expanded(
-                                flex: 2,
-                                child: Text(
-                                    period == null
-                                        ? '—'
-                                        : '${period.toStringAsFixed(1)} ms',
-                                    style: _mono)),
-                          ],
-                        ),
-                      ),
-                    );
+                  itemBuilder: (context, i) => switch (lines[i]) {
+                    _MsgLine l => _messageRow(context, l),
+                    _SigLine l => _signalRow(context, l),
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _messageRow(BuildContext context, _MsgLine l) {
+    final r = l.row;
+    final msg = l.msg;
+    final theme = Theme.of(context);
+    final open = state.expanded.contains(r.key);
+    final period = r.periodMs;
+    return InkWell(
+      onTap: msg == null ? null : () => state.toggleExpanded(r.key),
+      child: Container(
+        color: open ? theme.colorScheme.primary.withValues(alpha: 0.08) : null,
+        padding: const EdgeInsets.only(left: 4, right: 12),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 40,
+              child: msg == null
+                  ? null
+                  : Icon(open ? Icons.arrow_drop_down : Icons.arrow_right,
+                      size: 20, color: theme.colorScheme.primary),
+            ),
+            Expanded(
+                flex: 2,
+                child: Text('${r.extended ? "x" : ""}${_hexId(r.id, r.extended)}',
+                    style: _mono)),
+            Expanded(
+                flex: 4,
+                child: Text(msg?.name ?? '—',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: msg == null ? Colors.grey : theme.colorScheme.primary))),
+            Expanded(flex: 1, child: Text('${r.data.length}', style: _mono)),
+            Expanded(flex: 6, child: _HexData(r.data, changedMask: r.changedMask)),
+            Expanded(flex: 2, child: Text('${r.count}', style: _mono)),
+            Expanded(
+                flex: 2,
+                child: Text(period == null ? '—' : '${period.toStringAsFixed(1)} ms',
+                    style: _mono)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _signalRow(BuildContext context, _SigLine l) {
+    final s = l.sig;
+    final data = l.row.data;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, right: 12),
+      child: Row(
+        children: [
+          const SizedBox(width: 40),
+          const Expanded(flex: 2, child: SizedBox()),
+          Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Text('└ ${s.name}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13)),
+              )),
+          const Expanded(flex: 1, child: SizedBox()),
+          Expanded(
+              flex: 6,
+              child: Text(s.format(data),
+                  style: _mono.copyWith(fontWeight: FontWeight.bold))),
+          Expanded(
+              flex: 2,
+              child: Text('${s.rawFrom(data)}',
+                  style: _mono.copyWith(color: Colors.grey))),
+          Expanded(
+              flex: 2,
+              child: Text(
+                  '${s.startBit}|${s.length}@${s.byteOrder == ByteOrder.intel ? 1 : 0}${s.signed ? "-" : "+"}',
+                  style: _mono.copyWith(color: Colors.grey, fontSize: 11))),
+        ],
+      ),
     );
   }
 }
@@ -477,8 +555,7 @@ class _LiveTable extends StatelessWidget {
                     final msg = state.model.messageFor(f.id, f.extended);
                     final tx = f.direction == FrameDirection.tx;
                     return InkWell(
-                      onTap: () =>
-                          state.selectKey(DbcDatabase.key(f.id, f.extended)),
+                      onTap: null,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Row(
@@ -539,85 +616,6 @@ class _Empty extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-
-class _SignalPanel extends StatelessWidget {
-  final _TracerPageState state;
-  const _SignalPanel({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final key = state.selectedKey;
-    final row = key == null
-        ? null
-        : state.model.groupedRows.where((r) => r.key == key).firstOrNull;
-
-    if (row == null) {
-      return const _Empty('Select a message to decode its signals.');
-    }
-
-    final msg = state.model.messageFor(row.id, row.extended);
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          color: const Color(0x22FFFFFF),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(msg?.name ?? 'Unknown message',
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 2),
-              Text(
-                  '${row.extended ? "x" : ""}${_hexId(row.id, row.extended)}'
-                  '${msg == null ? "" : "  ·  ${msg.sender}"}'
-                  '  ·  ${row.count} frames',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              if (msg?.comment.isNotEmpty ?? false) ...[
-                const SizedBox(height: 6),
-                Text(msg!.comment,
-                    style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-              ],
-            ],
-          ),
-        ),
-        Expanded(
-          child: msg == null
-              ? _Empty(state.model.dbc == null
-                  ? 'Load a DBC to decode signals.'
-                  : 'This id is not in the loaded DBC.')
-              : Builder(builder: (context) {
-                  final signals = msg.signalsFor(row.data);
-                  return ListView.separated(
-                    itemCount: signals.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final s = signals[i];
-                      return ListTile(
-                        dense: true,
-                        title: Text(s.name, style: const TextStyle(fontSize: 13)),
-                        subtitle: Text(
-                            '${s.startBit}|${s.length}@'
-                            '${s.byteOrder == ByteOrder.intel ? "1" : "0"}'
-                            '${s.signed ? "-" : "+"}'
-                            '  raw ${s.rawFrom(row.data)}',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                        trailing: Text(s.format(row.data),
-                            style: _mono.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold)),
-                      );
-                    },
-                  );
-                }),
-        ),
-      ],
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 
@@ -767,8 +765,4 @@ class _SendDialogState extends State<_SendDialog> {
       ],
     );
   }
-}
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
