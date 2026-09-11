@@ -57,15 +57,33 @@ class _TracerPageState extends State<TracerPage> {
   void initState() {
     super.initState();
     _refreshDevices();
-    checkForUpdate().then((tag) {
-      if (tag == null || !mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('CANtracer $tag is available (installed: $appVersion)'),
-        duration: const Duration(seconds: 15),
-        action: SnackBarAction(label: 'Download', onPressed: openReleasePage),
-      ));
-    });
+    _checkUpdate();
   }
+
+  /// The startup check only speaks up when there is something new; the menu
+  /// entry (`manual`) always reports, so the user sees that it actually ran.
+  Future<void> _checkUpdate({bool manual = false}) async {
+    String? tag;
+    try {
+      tag = await checkForUpdate();
+    } catch (e) {
+      if (manual && mounted) _snack('Update check failed: $e');
+      return; // ponytail: silent at startup; the next launch tries again
+    }
+    if (!mounted) return;
+    if (tag == null) {
+      if (manual) _snack('CANtracer $appVersion is the latest version');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('CANtracer $tag is available (installed: $appVersion)'),
+      duration: const Duration(seconds: 15),
+      action: SnackBarAction(label: 'Download', onPressed: openReleasePage),
+    ));
+  }
+
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   void dispose() {
@@ -340,6 +358,29 @@ class _Toolbar extends StatelessWidget {
             selected: state.model.onlyKnown,
             onSelected: state.model.setOnlyKnown,
           ),
+          PopupMenuButton<void Function()>(
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (action) => action(),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: () => state._checkUpdate(manual: true),
+                child: const ListTile(
+                    dense: true,
+                    leading: Icon(Icons.system_update),
+                    title: Text('Check for updates')),
+              ),
+              PopupMenuItem(
+                value: openReleasePage,
+                child: const ListTile(
+                    dense: true,
+                    leading: Icon(Icons.info_outline),
+                    title: Text('Releases')),
+              ),
+            ],
+          ),
+          Text('v$appVersion',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF9E9E9E))),
         ],
       ),
     );
