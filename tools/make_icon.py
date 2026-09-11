@@ -18,10 +18,11 @@ BG_BOTTOM = (9, 18, 15)
 WAVE_GREEN = (61, 220, 132)    # the app's seed green
 RADIUS = 0.225            # of the edge length, roughly macOS' squircle
 
-# The square wave in design coordinates, centred on 512.
+# The square wave in design coordinates: mirror-symmetric about x=512, equal
+# pulse widths and equal end stubs, or the mark looks accidentally lopsided.
 LOW, HIGH = 660, 364
-WAVE = [(140, LOW), (300, LOW), (300, HIGH), (500, HIGH), (500, LOW),
-        (650, LOW), (650, HIGH), (810, HIGH), (810, LOW), (884, LOW)]
+WAVE = [(140, LOW), (252, LOW), (252, HIGH), (432, HIGH), (432, LOW),
+        (592, LOW), (592, HIGH), (772, HIGH), (772, LOW), (884, LOW)]
 
 
 def draw(size):
