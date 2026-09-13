@@ -20,6 +20,14 @@ void main() => runApp(const PantraceApp());
 /// menu delegate for Windows/Linux, so those keep the toolbar overflow menu.
 final _nativeMenus = defaultTargetPlatform == TargetPlatform.macOS;
 
+const _r = BorderRadius.all(Radius.circular(4));
+const _btn = ButtonStyle(
+  shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: _r)),
+  padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10, vertical: 4)),
+  minimumSize: WidgetStatePropertyAll(Size(0, 28)),
+  textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+);
+
 const _mono = TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Consolas'], fontSize: 13);
 
 class PantraceApp extends StatelessWidget {
@@ -37,6 +45,28 @@ class PantraceApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
         visualDensity: VisualDensity.compact,
+        // ponytail: M3 defaults are pill-shaped and tall; flatten to a 4px tool look.
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        filledButtonTheme: const FilledButtonThemeData(style: _btn),
+        outlinedButtonTheme: const OutlinedButtonThemeData(style: _btn),
+        textButtonTheme: const TextButtonThemeData(style: _btn),
+        segmentedButtonTheme: const SegmentedButtonThemeData(style: _btn),
+        iconButtonTheme: const IconButtonThemeData(
+            style: ButtonStyle(iconSize: WidgetStatePropertyAll(18))),
+        inputDecorationTheme: const InputDecorationTheme(
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: _r),
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        ),
+        chipTheme: const ChipThemeData(
+            shape: RoundedRectangleBorder(borderRadius: _r),
+            labelStyle: TextStyle(fontSize: 12),
+            padding: EdgeInsets.symmetric(horizontal: 4)),
+        dialogTheme: const DialogThemeData(
+            shape: RoundedRectangleBorder(borderRadius: _r)),
+        popupMenuTheme: const PopupMenuThemeData(
+            shape: RoundedRectangleBorder(borderRadius: _r)),
+        textTheme: Typography.englishLike2021.apply(fontSizeFactor: 0.9),
       ),
       home: const TracerPage(),
     );
