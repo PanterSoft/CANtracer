@@ -1,15 +1,15 @@
 ; Built by CI: iscc /DAppVersion=1.2.3 windows\installer.iss
 [Setup]
-AppName=CANtracer
+AppName=Pantrace
 AppVersion={#AppVersion}
 AppPublisher=PanterSoft
-AppPublisherURL=https://github.com/PanterSoft/CANtracer
-DefaultDirName={autopf}\CANtracer
-DefaultGroupName=CANtracer
+AppPublisherURL=https://github.com/PanterSoft/Pantrace
+DefaultDirName={autopf}\Pantrace
+DefaultGroupName=Pantrace
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..
-OutputBaseFilename=CANtracer-windows-x64-setup
+OutputBaseFilename=Pantrace-windows-x64-setup
 Compression=lzma2
 SolidCompression=yes
 
@@ -20,8 +20,8 @@ Name: desktopicon; Description: "Create a &desktop icon"; Flags: unchecked
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
-Name: "{group}\CANtracer"; Filename: "{app}\cantracer.exe"
-Name: "{autodesktop}\CANtracer"; Filename: "{app}\cantracer.exe"; Tasks: desktopicon
+Name: "{group}\Pantrace"; Filename: "{app}\pantrace.exe"
+Name: "{autodesktop}\Pantrace"; Filename: "{app}\pantrace.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\cantracer.exe"; Description: "Launch CANtracer"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\pantrace.exe"; Description: "Launch Pantrace"; Flags: nowait postinstall skipifsilent

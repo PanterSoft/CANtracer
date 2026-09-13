@@ -59,5 +59,5 @@ if __name__ == "__main__":
 
     icons[256].save(f"{root}/windows/runner/resources/app_icon.ico",
                     sizes=[(s, s) for s in (16, 32, 48, 64, 128, 256)])
-    icons[256].save(f"{root}/linux/cantracer.png")
+    icons[256].save(f"{root}/linux/pantrace.png")
     print("icons written")

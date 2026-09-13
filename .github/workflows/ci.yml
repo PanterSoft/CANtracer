@@ -82,19 +82,19 @@ jobs:
       - if: matrix.target == 'linux'
         run: |
           linux/package-deb.sh "$VERSION"
-          tar czf CANtracer-linux-x64.tar.gz -C build/linux/x64/release bundle
+          tar czf Pantrace-linux-x64.tar.gz -C build/linux/x64/release bundle
       - if: matrix.target == 'windows'
         # pwsh, not bash: git-bash rewrites the leading-slash /D flag into a path.
         shell: pwsh
         run: iscc "/DAppVersion=$env:VERSION" windows/installer.iss
       - if: matrix.target == 'macos'
         run: |
-          mkdir dmg && cp -R build/macos/Build/Products/Release/CANtracer.app dmg/ && ln -s /Applications dmg/Applications
-          hdiutil create -volname CANtracer -srcfolder dmg -ov -format UDZO CANtracer-macos.dmg
+          mkdir dmg && cp -R build/macos/Build/Products/Release/Pantrace.app dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname Pantrace -srcfolder dmg -ov -format UDZO Pantrace-macos.dmg
       - uses: actions/upload-artifact@v4
         with:
-          name: CANtracer-${{ matrix.target }}
-          path: CANtracer-*
+          name: Pantrace-${{ matrix.target }}
+          path: Pantrace-*
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -111,7 +111,7 @@ jobs:
           TAG: v${{ needs.version.outputs.version }}
         run: |
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" && { echo "$TAG exists, skipping"; exit 0; }
-          gh release create "$TAG" CANtracer-* -R "$GITHUB_REPOSITORY" \
+          gh release create "$TAG" Pantrace-* -R "$GITHUB_REPOSITORY" \
             --target main --generate-notes
 
       # The Homebrew cask in PanterSoft/homebrew-pantersoft follows the latest

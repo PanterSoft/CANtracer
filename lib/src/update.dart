@@ -4,7 +4,7 @@ import 'dart:io';
 /// Injected at build time: `--dart-define=APP_VERSION=1.2.3` (see Makefile / CI).
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0.0');
 
-const _repo = 'PanterSoft/CANtracer';
+const _repo = 'PanterSoft/Pantrace';
 const releasesUrl = 'https://github.com/$_repo/releases/latest';
 
 /// Tag of a newer GitHub release, or null when up to date.
@@ -13,7 +13,7 @@ const releasesUrl = 'https://github.com/$_repo/releases/latest';
 Future<String?> checkForUpdate({String repo = _repo}) async {
   final client = HttpClient()
     ..connectionTimeout = const Duration(seconds: 5)
-    ..userAgent = 'CANtracer/$appVersion'; // GitHub 403s an empty User-Agent
+    ..userAgent = 'Pantrace/$appVersion'; // GitHub 403s an empty User-Agent
   try {
     final url = 'https://api.github.com/repos/$repo/releases/latest';
     final res = await (await client.getUrl(Uri.parse(url))).close();
@@ -51,9 +51,9 @@ void openReleasePage() => Process.run(
 /// Release asset this platform can install unattended, or null when it has no
 /// such path (Linux: the .deb needs root, so the browser takes over).
 String? get _assetName => Platform.isWindows
-    ? 'CANtracer-windows-x64-setup.exe'
+    ? 'Pantrace-windows-x64-setup.exe'
     : Platform.isMacOS
-        ? 'CANtracer-macos.dmg'
+        ? 'Pantrace-macos.dmg'
         : null;
 
 bool get canSelfInstall => _assetName != null;
@@ -83,7 +83,7 @@ Future<Never> downloadAndInstall(String tag,
           '-c',
           'sleep 2; m=\$(mktemp -d); '
               'hdiutil attach -nobrowse -quiet ${_q(file.path)} -mountpoint "\$m" && '
-              'rm -rf ${_q(app)} && cp -R "\$m/CANtracer.app" ${_q(File(app).parent.path)}; '
+              'rm -rf ${_q(app)} && cp -R "\$m/Pantrace.app" ${_q(File(app).parent.path)}; '
               'hdiutil detach -quiet "\$m"; open ${_q(app)}'
         ],
         mode: ProcessStartMode.detached);
@@ -95,7 +95,7 @@ Future<Never> downloadAndInstall(String tag,
 String _q(String s) => "'${s.replaceAll("'", r"'\''")}'";
 
 Future<void> _download(String url, File out, void Function(double)? onProgress) async {
-  final client = HttpClient()..userAgent = 'CANtracer/$appVersion';
+  final client = HttpClient()..userAgent = 'Pantrace/$appVersion';
   try {
     final res = await (await client.getUrl(Uri.parse(url))).close();
     if (res.statusCode != 200) {

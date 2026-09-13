@@ -181,7 +181,7 @@ class VectorBus implements CanBus {
 
     final portPtr = calloc<Int32>();
     final permPtr = calloc<Uint64>()..value = _mask;
-    final name = 'CANtracer'.toNativeUtf8();
+    final name = 'Pantrace'.toNativeUtf8();
     try {
       final r = x.openPort(
           portPtr, name, _mask, permPtr, 16384, _interfaceVersion, _busTypeCan);

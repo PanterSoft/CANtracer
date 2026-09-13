@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:cantracer/main.dart';
-import 'package:cantracer/src/update.dart';
+import 'package:pantrace/main.dart';
+import 'package:pantrace/src/update.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -17,7 +17,7 @@ void main() {
 
   testWidgets('the overflow menu offers a manual update check', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1400, 800));
-    await tester.pumpWidget(const CanTracerApp());
+    await tester.pumpWidget(const PantraceApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.more_vert));
@@ -34,11 +34,11 @@ void main() {
     // Renaming a release asset would otherwise 404 only at install time.
     final built = File('.github/workflows/ci.yml').readAsStringSync() +
         File('windows/installer.iss').readAsStringSync();
-    for (final name in ['CANtracer-windows-x64-setup', 'CANtracer-macos.dmg']) {
+    for (final name in ['Pantrace-windows-x64-setup', 'Pantrace-macos.dmg']) {
       expect(built, contains(name));
     }
     if (!canSelfInstall) return; // Linux: the .deb needs root, browser instead
     expect(assetUrl('v1.2.3'),
-        matches(r'^https://github\.com/.+/releases/download/v1\.2\.3/CANtracer-'));
+        matches(r'^https://github\.com/.+/releases/download/v1\.2\.3/Pantrace-'));
   });
 }

@@ -1,9 +1,9 @@
-<img src="linux/cantracer.png" width="84" align="left" alt="">
+<img src="linux/pantrace.png" width="84" align="left" alt="">
 
-# CANtracer
+# Pantrace
 
-[![CI](https://github.com/PanterSoft/CANtracer/actions/workflows/ci.yml/badge.svg)](https://github.com/PanterSoft/CANtracer/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/PanterSoft/CANtracer)](https://github.com/PanterSoft/CANtracer/releases/latest)
+[![CI](https://github.com/PanterSoft/Pantrace/actions/workflows/ci.yml/badge.svg)](https://github.com/PanterSoft/Pantrace/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/PanterSoft/Pantrace)](https://github.com/PanterSoft/Pantrace/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -28,15 +28,15 @@ macOS, via Homebrew:
 
 ```sh
 brew tap pantersoft/pantersoft
-brew trust --cask pantersoft/pantersoft/cantracer   # once: third-party casks are untrusted
-brew install --cask cantracer
+brew trust --cask pantersoft/pantersoft/pantrace   # once: third-party casks are untrusted
+brew install --cask pantrace
 ```
 
 The build is ad-hoc signed, not notarised, so macOS quarantines it. If it
-refuses to open: `xattr -dr com.apple.quarantine /Applications/CANtracer.app`.
+refuses to open: `xattr -dr com.apple.quarantine /Applications/Pantrace.app`.
 
 Windows, Linux and the plain macOS dmg: grab the installer from the
-[latest release](https://github.com/PanterSoft/CANtracer/releases/latest).
+[latest release](https://github.com/PanterSoft/Pantrace/releases/latest).
 
 No hardware? Pick **Demo traffic generator**, hit Connect, then **Load DBC** →
 `example/demo.dbc`.
@@ -62,7 +62,7 @@ the status line says what to install.
 - **PCAN macOS** — install [MacCAN PCBUSB](https://mac-can.github.io/), which
   exposes the PCANBasic API as `libPCBUSB.dylib`.
 - **Vector** — install the XL Driver Library and assign channels in *Vector
-  Hardware Config*; CANtracer lists application-channel indices 0-7.
+  Hardware Config*; Pantrace lists application-channel indices 0-7.
 - **SocketCAN** — a down link is brought up with
   `ip link set canX up type can bitrate N`, which needs root: run it yourself
   first or start the app with `sudo`.

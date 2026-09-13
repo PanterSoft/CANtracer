@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cantracer/src/dbc.dart';
+import 'package:pantrace/src/dbc.dart';
 
 Uint8List bytes(List<int> b) => Uint8List.fromList(b);
 

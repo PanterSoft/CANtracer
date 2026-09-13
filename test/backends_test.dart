@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cantracer/src/can.dart';
-import 'package:cantracer/src/backends/slcan.dart';
-import 'package:cantracer/src/backends/socketcan.dart';
-import 'package:cantracer/src/backends/pcan.dart';
-import 'package:cantracer/src/backends/vector.dart';
-import 'package:cantracer/src/backends/virtual.dart';
+import 'package:pantrace/src/can.dart';
+import 'package:pantrace/src/backends/slcan.dart';
+import 'package:pantrace/src/backends/socketcan.dart';
+import 'package:pantrace/src/backends/pcan.dart';
+import 'package:pantrace/src/backends/vector.dart';
+import 'package:pantrace/src/backends/virtual.dart';
 
 Uint8List b(List<int> x) => Uint8List.fromList(x);
 

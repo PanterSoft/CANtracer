@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cantracer/src/can.dart';
-import 'package:cantracer/src/dbc.dart';
-import 'package:cantracer/src/trace.dart';
+import 'package:pantrace/src/can.dart';
+import 'package:pantrace/src/dbc.dart';
+import 'package:pantrace/src/trace.dart';
 
 Uint8List b(List<int> x) => Uint8List.fromList(x);
 CanFrame f(int id, List<int> data, {bool ext = false, DateTime? t}) =>

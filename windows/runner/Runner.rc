@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "dev.cantracer" "\0"
-            VALUE "FileDescription", "cantracer" "\0"
+            VALUE "CompanyName", "dev.pantrace" "\0"
+            VALUE "FileDescription", "pantrace" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "cantracer" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 dev.cantracer. All rights reserved." "\0"
-            VALUE "OriginalFilename", "cantracer.exe" "\0"
-            VALUE "ProductName", "cantracer" "\0"
+            VALUE "InternalName", "pantrace" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 dev.pantrace. All rights reserved." "\0"
+            VALUE "OriginalFilename", "pantrace.exe" "\0"
+            VALUE "ProductName", "pantrace" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

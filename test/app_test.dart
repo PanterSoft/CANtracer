@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cantracer/main.dart';
-import 'package:cantracer/src/can.dart';
-import 'package:cantracer/src/dbc.dart';
+import 'package:pantrace/main.dart';
+import 'package:pantrace/src/can.dart';
+import 'package:pantrace/src/dbc.dart';
 
 /// End-to-end through the real widgets, using the virtual backend so it runs
 /// headless on CI with no hardware.
@@ -12,7 +12,7 @@ void main() {
   testWidgets('connects to the virtual bus, traces, and decodes with a DBC',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1400, 800));
-    await tester.pumpWidget(const CanTracerApp());
+    await tester.pumpWidget(const PantraceApp());
     await tester.pumpAndSettle();
 
     // Discovery is async; pick the demo generator once it appears.

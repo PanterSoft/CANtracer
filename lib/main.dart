@@ -14,7 +14,7 @@ import 'src/registry.dart';
 import 'src/trace.dart';
 import 'src/update.dart';
 
-void main() => runApp(const CanTracerApp());
+void main() => runApp(const PantraceApp());
 
 /// macOS wants app actions in the system menu bar; Flutter ships no native
 /// menu delegate for Windows/Linux, so those keep the toolbar overflow menu.
@@ -22,13 +22,13 @@ final _nativeMenus = defaultTargetPlatform == TargetPlatform.macOS;
 
 const _mono = TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Consolas'], fontSize: 13);
 
-class CanTracerApp extends StatelessWidget {
-  const CanTracerApp({super.key});
+class PantraceApp extends StatelessWidget {
+  const PantraceApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CANtracer',
+      title: 'Pantrace',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -78,12 +78,12 @@ class _TracerPageState extends State<TracerPage> {
     }
     if (!mounted) return;
     if (tag == null) {
-      if (manual) _snack('CANtracer $appVersion is the latest version');
+      if (manual) _snack('Pantrace $appVersion is the latest version');
       return;
     }
     final newTag = tag;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('CANtracer $newTag is available (installed: $appVersion)'),
+      content: Text('Pantrace $newTag is available (installed: $appVersion)'),
       duration: const Duration(seconds: 15),
       action: canSelfInstall
           ? SnackBarAction(label: 'Install', onPressed: () => _install(newTag))
@@ -99,7 +99,7 @@ class _TracerPageState extends State<TracerPage> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: Text('Installing CANtracer $tag'),
+        title: Text('Installing Pantrace $tag'),
         content: ValueListenableBuilder<double>(
           valueListenable: progress,
           builder: (_, v, _) => LinearProgressIndicator(value: v == 0 ? null : v),
@@ -222,7 +222,7 @@ class _TracerPageState extends State<TracerPage> {
   /// replaces the whole Runner menu, so the standard menus are re-declared
   /// here from platform-provided items.
   List<PlatformMenuItem> _menus() => [
-        PlatformMenu(label: 'CANtracer', menus: [
+        PlatformMenu(label: 'Pantrace', menus: [
           const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.about),
           PlatformMenuItemGroup(members: [
             PlatformMenuItem(
@@ -335,7 +335,7 @@ class _Toolbar extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          const Text('CANtracer',
+          const Text('Pantrace',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(width: 8),
           SizedBox(

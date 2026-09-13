@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:cantracer/main.dart';
-import 'package:cantracer/src/dbc.dart';
+import 'package:pantrace/main.dart';
+import 'package:pantrace/src/dbc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,7 +14,7 @@ void main() {
         (tester) async {
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(const CanTracerApp());
+      await tester.pumpWidget(const PantraceApp());
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
