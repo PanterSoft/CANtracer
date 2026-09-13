@@ -152,24 +152,6 @@ BO_ 291 EngineData: 8 ECM
  SG_ EngineSpeed : 0|16@1+ (0.25,0) [0|16383] "rpm" ECM
 ''';
 
-    test('only-known filter hides undecodable ids', () {
-      final m = TraceModel()..loadDbc(parseDbc(dbc), 'test.dbc');
-      m.add(f(291, [0, 0]));
-      m.add(f(0x777, [0, 0]));
-      expect(m.groupedRows.length, 2);
-      m.setOnlyKnown(true);
-      expect(m.groupedRows.length, 1);
-      expect(m.groupedRows.first.id, 291);
-      m.dispose();
-    });
-
-    test('only-known with no dbc loaded hides everything', () {
-      final m = TraceModel()..setOnlyKnown(true);
-      m.add(f(291, [0, 0]));
-      expect(m.groupedRows, isEmpty);
-      m.dispose();
-    });
-
     test('lookup resolves a message for a traced id', () {
       final m = TraceModel()..loadDbc(parseDbc(dbc), 'test.dbc');
       expect(m.messageFor(291, false)!.name, 'EngineData');

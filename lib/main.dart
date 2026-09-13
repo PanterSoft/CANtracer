@@ -497,11 +497,6 @@ class _Toolbar extends StatelessWidget {
               onChanged: state.model.setFilter,
             ),
           ),
-          FilterChip(
-            label: const Text('DBC only'),
-            selected: state.model.onlyKnown,
-            onSelected: state.model.setOnlyKnown,
-          ),
           if (!_nativeMenus)
             PopupMenuButton<void Function()>(
               tooltip: 'More',

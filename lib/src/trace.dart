@@ -55,7 +55,6 @@ class TraceModel extends ChangeNotifier {
 
   // Filters
   String idFilter = '';
-  bool onlyKnown = false;
 
   // Statistics
   int totalFrames = 0;
@@ -146,11 +145,6 @@ class TraceModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setOnlyKnown(bool v) {
-    onlyKnown = v;
-    notifyListeners();
-  }
-
   void loadDbc(DbcDatabase db, String path) {
     dbc = db;
     dbcPath = path;
@@ -184,11 +178,7 @@ class TraceModel extends ChangeNotifier {
     return false;
   }
 
-  bool _passes(int id, bool extended) {
-    if (!matchesIdFilter(id, idFilter)) return false;
-    if (onlyKnown && dbc?.lookup(id, extended) == null) return false;
-    return true;
-  }
+  bool _passes(int id, bool extended) => matchesIdFilter(id, idFilter);
 
   /// Newest first, so the interesting end is at the top and no scroll
   /// management is needed.
